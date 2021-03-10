@@ -103,7 +103,7 @@ public class ElkLogger {
         static final ThreadPoolExecutor taskExecutor;
 
         static {
-            BlockingDeque blockingDeque = new LinkedBlockingDeque(200);
+            BlockingDeque blockingDeque = new LinkedBlockingDeque(500);
             taskExecutor = new ThreadPoolExecutor(2, 4, 300, TimeUnit.SECONDS, blockingDeque);
         }
     }
