@@ -19,16 +19,26 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class ElkLogger {
     private static final ConnectionFactory rabbitMqFactory = new ConnectionFactory();
-    private static String APPNAME;
+    private static String AppName;
+    private static String SourceHost;
     private static final String LOG_QUEUE_NAME = "ELK-LOGS";
+    private static boolean HasInit = false;
+
+    public static void init(String app, String sourceHost, RabbitMQProperty property) {
+        if (!HasInit) {
+            ElkLogger.AppName = app;
+            ElkLogger.SourceHost = sourceHost;
+            rabbitMqFactory.setHost(property.getHost());
+            rabbitMqFactory.setUsername(property.getUserName());
+            rabbitMqFactory.setPassword(property.getPassword());
+            rabbitMqFactory.setPort(property.getPort());
+            rabbitMqFactory.setVirtualHost("/");
+            HasInit = true;
+        }
+    }
 
     public static void init(String app, RabbitMQProperty property) {
-        APPNAME = app;
-        rabbitMqFactory.setHost(property.getHost());
-        rabbitMqFactory.setUsername(property.getUserName());
-        rabbitMqFactory.setPassword(property.getPassword());
-        rabbitMqFactory.setPort(property.getPort());
-        rabbitMqFactory.setVirtualHost("/");
+        init(app, "", property);
     }
 
     @SneakyThrows
@@ -41,7 +51,10 @@ public class ElkLogger {
                 channel = connection.createChannel();
                 channel.queueDeclare(LOG_QUEUE_NAME, false, false, false, null);
                 JSONObject logBody = new JSONObject();
-                logBody.put("app_name", APPNAME);
+                logBody.put("app_name", AppName);
+                if (SourceHost != null && SourceHost.length() > 0) {
+                    logBody.put("source_host", SourceHost);
+                }
                 logBody.put("log_time", new Date());
                 logBody.put("log_level", logLevel.getValue());
                 if (title != null && title.length() > 0) {
