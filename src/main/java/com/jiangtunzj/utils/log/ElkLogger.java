@@ -23,6 +23,7 @@ public class ElkLogger {
     private static String SourceHost;
     private static final String LOG_QUEUE_NAME = "ELK-LOGS";
     private static boolean HasInit = false;
+    private static final String Omit = "...";
 
     public static void init(String app, String sourceHost, RabbitMQProperty property) {
         if (!HasInit) {
@@ -58,9 +59,9 @@ public class ElkLogger {
                 logBody.put("log_time", new Date());
                 logBody.put("log_level", logLevel.getValue());
                 if (title != null && title.length() > 0) {
-                    logBody.put("log_title", title);
+                    logBody.put("log_title", subString(title, 1000));
                 }
-                logBody.put("log_message", message);
+                logBody.put("log_message", subString(message, 10000));
                 if (traceId != null && traceId.length() > 0) {
                     logBody.put("trace_id", traceId);
                 }
@@ -106,5 +107,12 @@ public class ElkLogger {
             BlockingDeque blockingDeque = new LinkedBlockingDeque(500);
             taskExecutor = new ThreadPoolExecutor(2, 4, 300, TimeUnit.SECONDS, blockingDeque);
         }
+    }
+
+    private static String subString(String input, int length) {
+        if (input != null && input.length() > length) {
+            input = input.substring(0, length) + Omit;
+        }
+        return input;
     }
 }
