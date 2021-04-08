@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -25,7 +27,6 @@ public class ElkLogger {
     private static final String LOG_QUEUE_NAME = "ELK-LOGS";
     private static boolean HasInit = false;
     private static final String Omit = "...";
-    private static final SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     public static void init(String app, String sourceHost, RabbitMQProperty property) {
         if (!HasInit) {
@@ -58,7 +59,7 @@ public class ElkLogger {
                 if (SourceHost != null && SourceHost.length() > 0) {
                     logBody.put("source_host", SourceHost);
                 }
-                logBody.put("log_time",simpleDateFormat.format(new Date()));
+                logBody.put("@timestamp", LocalDateTime.now(ZoneOffset.UTC));
                 logBody.put("log_level", logLevel.getValue());
                 if (title != null && title.length() > 0) {
                     logBody.put("log_title", subString(title, 1000));
