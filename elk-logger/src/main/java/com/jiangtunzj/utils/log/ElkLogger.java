@@ -10,10 +10,8 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Date;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -27,22 +25,40 @@ public class ElkLogger {
     private static final String LOG_QUEUE_NAME = "ELK-LOGS";
     private static boolean HasInit = false;
     private static final String Omit = "...";
+    private static int OmitLength = 10000;
 
-    public static void init(String app, String sourceHost, RabbitMQProperty property) {
+    public static void init(String app, RabbitMQProperty property, String sourceHost, Integer maxLength) {
         if (!HasInit) {
-            ElkLogger.AppName = app;
-            ElkLogger.SourceHost = sourceHost;
-            rabbitMqFactory.setHost(property.getHost());
-            rabbitMqFactory.setUsername(property.getUserName());
-            rabbitMqFactory.setPassword(property.getPassword());
-            rabbitMqFactory.setPort(property.getPort());
-            rabbitMqFactory.setVirtualHost("/");
-            HasInit = true;
+            try {
+                ElkLogger.AppName = app;
+                ElkLogger.SourceHost = sourceHost;
+                rabbitMqFactory.setHost(property.getHost());
+                rabbitMqFactory.setUsername(property.getUserName());
+                rabbitMqFactory.setPassword(property.getPassword());
+                rabbitMqFactory.setPort(property.getPort());
+                rabbitMqFactory.setVirtualHost("/");
+                if (maxLength != null) {
+                    OmitLength = maxLength;
+                }
+                log(LogLevel.DEBUG, String.format("init elk-logger component is success , max message length has set to %s .",OmitLength));
+                log.debug(String.format("init elk-logger component is success , max message length has set to %s .",OmitLength));
+                HasInit = true;
+            } catch (Exception exception) {
+                log.error("init elk-logger component [FAIL].", exception);
+            }
         }
     }
 
     public static void init(String app, RabbitMQProperty property) {
-        init(app, "", property);
+        init(app, property, "", null);
+    }
+
+    public static void init(String app, RabbitMQProperty property, Integer maxLength) {
+        init(app, property, "", maxLength);
+    }
+
+    public static void init(String app, RabbitMQProperty property, String sourceHost) {
+        init(app, property, sourceHost, null);
     }
 
     @SneakyThrows
@@ -64,7 +80,7 @@ public class ElkLogger {
                 if (title != null && title.length() > 0) {
                     logBody.put("log_title", subString(title, 1000));
                 }
-                logBody.put("log_message", subString(message, 10000));
+                logBody.put("log_message", subString(message, OmitLength));
                 if (traceId != null && traceId.length() > 0) {
                     logBody.put("trace_id", traceId);
                 }
