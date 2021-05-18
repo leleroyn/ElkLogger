@@ -27,7 +27,7 @@ public class ElkLogger {
     private static final String Omit = "...";
     private static int OmitLength = 10000;
 
-    public static void init(String app, RabbitMQProperty property, String sourceHost, Integer maxLength) {
+    public static void init(String app, String sourceHost, RabbitMQProperty property, Integer maxLength) {
         if (!HasInit) {
             try {
                 ElkLogger.AppName = app;
@@ -38,10 +38,10 @@ public class ElkLogger {
                 rabbitMqFactory.setPort(property.getPort());
                 rabbitMqFactory.setVirtualHost("/");
                 if (maxLength != null) {
-                    OmitLength = maxLength;
+                    ElkLogger.OmitLength = maxLength;
                 }
-                log(LogLevel.DEBUG, String.format("init elk-logger component is success , max message length has set to %s .",OmitLength));
-                log.debug(String.format("init elk-logger component is success , max message length has set to %s .",OmitLength));
+                log(LogLevel.DEBUG, String.format("init elk-logger component is success , max message length has set to %s .", OmitLength));
+                log.debug(String.format("init elk-logger component is success , max message length has set to %s .", OmitLength));
                 HasInit = true;
             } catch (Exception exception) {
                 log.error("init elk-logger component [FAIL].", exception);
@@ -50,15 +50,15 @@ public class ElkLogger {
     }
 
     public static void init(String app, RabbitMQProperty property) {
-        init(app, property, "", null);
+        init(app, "", property, null);
     }
 
     public static void init(String app, RabbitMQProperty property, Integer maxLength) {
-        init(app, property, "", maxLength);
+        init(app, "", property, maxLength);
     }
 
-    public static void init(String app, RabbitMQProperty property, String sourceHost) {
-        init(app, property, sourceHost, null);
+    public static void init(String app, String sourceHost, RabbitMQProperty property) {
+        init(app, sourceHost, property, null);
     }
 
     @SneakyThrows
