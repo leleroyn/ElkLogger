@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class ElkLogger {
-    private static final ConnectionFactory rabbitMqFactory = new ConnectionFactory();
+
     private static String AppName;
     private static String SourceHost;
     private static final String LOG_QUEUE_NAME = "ELK-LOGS";
@@ -30,15 +30,15 @@ public class ElkLogger {
     public static void init(String app, String sourceHost, RabbitMQProperty property, Integer maxLength) {
         if (!HasInit) {
             try {
-                ElkLogger.AppName = app;
-                ElkLogger.SourceHost = sourceHost;
-                rabbitMqFactory.setHost(property.getHost());
-                rabbitMqFactory.setUsername(property.getUserName());
-                rabbitMqFactory.setPassword(property.getPassword());
-                rabbitMqFactory.setPort(property.getPort());
-                rabbitMqFactory.setVirtualHost("/");
+                AppName = app;
+                SourceHost = sourceHost;
+                Holder.rabbitMqFactory.setHost(property.getHost());
+                Holder.rabbitMqFactory.setUsername(property.getUserName());
+                Holder.rabbitMqFactory.setPassword(property.getPassword());
+                Holder.rabbitMqFactory.setPort(property.getPort());
+                Holder.rabbitMqFactory.setVirtualHost("/");
                 if (maxLength != null) {
-                    ElkLogger.OmitLength = maxLength;
+                    OmitLength = maxLength;
                 }
                 log(LogLevel.DEBUG, String.format("init elk-logger component is success , max message length has set to %s .", OmitLength));
                 log.debug(String.format("init elk-logger component is success , max message length has set to %s .", OmitLength));
@@ -64,11 +64,12 @@ public class ElkLogger {
     @SneakyThrows
     public static void log(LogLevel logLevel, String title, String message, String traceId) {
         Holder.taskExecutor.execute(() -> {
-            Connection connection = null;
             Channel channel = null;
             try {
-                connection = rabbitMqFactory.newConnection();
-                channel = connection.createChannel();
+                if (Holder.rabbitMqConnection == null || !Holder.rabbitMqConnection.isOpen()) {
+                    Holder.rabbitMqConnection = Holder.rabbitMqFactory.newConnection();
+                }
+                channel = Holder.rabbitMqConnection.createChannel();
                 channel.queueDeclare(LOG_QUEUE_NAME, false, false, false, null);
                 JSONObject logBody = new JSONObject();
                 logBody.put("app_name", AppName);
@@ -91,8 +92,6 @@ public class ElkLogger {
                 try {
                     if (channel != null)
                         channel.close();
-                    if (connection != null)
-                        connection.close();
                 } catch (Exception ex) {
                     log.error("释放elk mq 连接时异常.", ex);
                 }
@@ -121,9 +120,11 @@ public class ElkLogger {
 
     private static final class Holder {
         static final ThreadPoolExecutor taskExecutor;
+        static final ConnectionFactory rabbitMqFactory = new ConnectionFactory();
+        static Connection rabbitMqConnection;
 
         static {
-            BlockingDeque blockingDeque = new LinkedBlockingDeque(500);
+            BlockingDeque blockingDeque = new LinkedBlockingDeque(1000);
             taskExecutor = new ThreadPoolExecutor(2, 4, 300, TimeUnit.SECONDS, blockingDeque);
         }
     }
