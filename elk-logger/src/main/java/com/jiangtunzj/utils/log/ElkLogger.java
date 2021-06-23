@@ -27,7 +27,7 @@ public class ElkLogger {
     private static boolean HasInit = false;
     private static final String Omit = "...";
     private static int OmitLength = 10000;
-    private static ReentrantLock reentrantLock = new ReentrantLock();
+    private static final ReentrantLock reentrantLock = new ReentrantLock();
 
     public static void init(String app, String sourceHost, RabbitMQProperty property, Integer maxLength) {
         if (!HasInit) {
