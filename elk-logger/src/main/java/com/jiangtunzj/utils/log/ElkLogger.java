@@ -16,6 +16,7 @@ import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 public class ElkLogger {
@@ -26,6 +27,7 @@ public class ElkLogger {
     private static boolean HasInit = false;
     private static final String Omit = "...";
     private static int OmitLength = 10000;
+    private static ReentrantLock reentrantLock = new ReentrantLock();
 
     public static void init(String app, String sourceHost, RabbitMQProperty property, Integer maxLength) {
         if (!HasInit) {
@@ -67,7 +69,14 @@ public class ElkLogger {
             Channel channel = null;
             try {
                 if (Holder.rabbitMqConnection == null || !Holder.rabbitMqConnection.isOpen()) {
-                    Holder.rabbitMqConnection = Holder.rabbitMqFactory.newConnection();
+                    try {
+                        reentrantLock.lock();
+                        if (Holder.rabbitMqConnection == null || !Holder.rabbitMqConnection.isOpen()) {
+                            Holder.rabbitMqConnection = Holder.rabbitMqFactory.newConnection();
+                        }
+                    } finally {
+                        reentrantLock.unlock();
+                    }
                 }
                 channel = Holder.rabbitMqConnection.createChannel();
                 channel.queueDeclare(LOG_QUEUE_NAME, false, false, false, null);
