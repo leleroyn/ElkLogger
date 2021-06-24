@@ -12,10 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
@@ -133,7 +130,7 @@ public class ElkLogger {
         static Connection rabbitMqConnection;
 
         static {
-            BlockingDeque blockingDeque = new LinkedBlockingDeque(1000);
+            ArrayBlockingQueue blockingDeque = new ArrayBlockingQueue(1000);
             taskExecutor = new ThreadPoolExecutor(2, 4, 300, TimeUnit.SECONDS, blockingDeque);
         }
     }
