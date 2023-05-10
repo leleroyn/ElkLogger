@@ -39,11 +39,11 @@ public class ElkLogger {
                 if (maxLength != null) {
                     OmitLength = maxLength;
                 }
-                log(LogLevel.DEBUG, String.format("init elk-logger component is success , max message length has set to %s .", OmitLength));
-                log.debug(String.format("init elk-logger component is success , max message length has set to %s .", OmitLength));
+                log(LogLevel.DEBUG, String.format("The elk-logger component has been initialized success state and the message's maxlength has been set to %s .", OmitLength));
+                log.debug(String.format("The elk-logger component has been initialized success and the message's maxlength has been set to %s .", OmitLength));
                 HasInit = true;
             } catch (Exception exception) {
-                log.error("init elk-logger component [FAIL].", exception);
+                log.error("The elk-logger component has been initialized error state.", exception);
             }
         }
     }
