@@ -10,10 +10,10 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
@@ -83,7 +83,7 @@ public class ElkLogger {
                 if (SourceHost != null && SourceHost.length() > 0) {
                     logBody.put("source_host", SourceHost);
                 }
-                logBody.put("@timestamp", new Date().getTime());
+                logBody.put("log_time", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                 logBody.put("log_level", logLevel.getValue());
                 if (title != null && title.length() > 0) {
                     logBody.put("log_title", subString(title, 1000));
