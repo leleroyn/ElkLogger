@@ -26,11 +26,16 @@ public class ElkLogger {
     private static boolean HasInit = false;
     private static final String Omit = "...";
     private static int OmitLength = 10000;
+    /**
+     * 追踪标识是否带上AppName,默认开启（单机应用时可以关闭）
+     */
+    private static Boolean TraceIdWithAppName = true;
     private static final ReentrantLock reentrantLock = new ReentrantLock();
 
-    public static void init(String app, String sourceHost, RabbitMQProperty property, Integer maxLength) {
+    public static void init(String app, String sourceHost, RabbitMQProperty property, Integer maxLength, Boolean traceIdWithAppName) {
         if (!HasInit) {
             try {
+                TraceIdWithAppName = traceIdWithAppName;
                 AppName = app;
                 SourceHost = sourceHost;
                 Holder.rabbitMqFactory.setHost(property.getHost());
@@ -48,6 +53,10 @@ public class ElkLogger {
                 log.error("The elk-logger component has been initialized error state.", exception);
             }
         }
+    }
+
+    public static void init(String app, String sourceHost, RabbitMQProperty property, Integer maxLength) {
+        init(app, sourceHost, property, maxLength, true);
     }
 
     public static void init(String app, RabbitMQProperty property) {
@@ -91,7 +100,11 @@ public class ElkLogger {
                 }
                 logBody.put("log_message", subString(message, OmitLength));
                 if (traceId != null && traceId.length() > 0) {
-                    logBody.put("trace_id", traceId);
+                    if (TraceIdWithAppName) {
+                        logBody.put("trace_id", String.join("-", AppName, traceId));
+                    } else {
+                        logBody.put("trace_id", traceId);
+                    }
                 }
                 channel.basicPublish("", LOG_QUEUE_NAME, null, logBody.toJSONString().getBytes(StandardCharsets.UTF_8));
             } catch (Exception ex) {
