@@ -11,9 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
@@ -90,7 +91,7 @@ public class ElkLogger {
                 }
                 logBody.put("log_message", subString(message, OmitLength));
                 if (traceId != null && traceId.length() > 0) {
-                    logBody.put("trace_id", traceId);
+                    logBody.put("trace_id", String.join("-", AppName, traceId));
                 }
                 channel.basicPublish("", LOG_QUEUE_NAME, null, logBody.toJSONString().getBytes(StandardCharsets.UTF_8));
             } catch (Exception ex) {
