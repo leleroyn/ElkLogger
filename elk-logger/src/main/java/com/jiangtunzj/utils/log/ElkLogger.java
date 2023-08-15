@@ -91,7 +91,7 @@ public class ElkLogger {
                 }
                 logBody.put("log_message", subString(message, OmitLength));
                 if (traceId != null && traceId.length() > 0) {
-                    logBody.put("trace_id", String.join("-", AppName, traceId));
+                    logBody.put("trace_id", traceId);
                 }
                 channel.basicPublish("", LOG_QUEUE_NAME, null, logBody.toJSONString().getBytes(StandardCharsets.UTF_8));
             } catch (Exception ex) {
