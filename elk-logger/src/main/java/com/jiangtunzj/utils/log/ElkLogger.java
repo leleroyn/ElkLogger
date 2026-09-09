@@ -9,6 +9,8 @@ import lombok.Data;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -60,6 +62,28 @@ public class ElkLogger {
 
     public static void init(String app, String sourceHost, RabbitMQProperty property) {
         init(app, sourceHost, property, null);
+    }
+
+    /**
+     * 使用 SLF4J 风格的 {@code {}} 占位符格式化消息后记录日志（f = format）。
+     * <p>示例：{@code logf(LogLevel.INFO, "用户 {} 在 {} 登录", userId, ip)}</p>
+     * 说明：
+     * <ul>
+     *   <li>{@code \{}} 会转义为字面量 {@code {}}，且不消费参数；</li>
+     *   <li>参数按出现顺序依次填充占位符；多余的占位符保持原样，多余的参数被忽略；</li>
+     *   <li>若最后一个参数是 {@link Throwable} 且没有对应的占位符，则在其后追加异常堆栈。</li>
+     * </ul>
+     */
+    public static void logf(LogLevel logLevel, String message, Object... args) {
+        log(logLevel, "", formatMessage(message, args), (String) null);
+    }
+
+    public static void logf(LogLevel logLevel, String title, String message, Object... args) {
+        log(logLevel, title, formatMessage(message, args), (String) null);
+    }
+
+    public static void logf(LogLevel logLevel, String title, String message, String traceId, Object... args) {
+        log(logLevel, title, formatMessage(message, args), traceId);
     }
 
     @SneakyThrows
@@ -142,5 +166,63 @@ public class ElkLogger {
             input = input.substring(0, length) + Omit;
         }
         return input;
+    }
+
+    /**
+     * 将消息模板中的 {@code {}} 占位符按顺序替换为参数值（SLF4J 风格，无外部依赖实现）。
+     */
+    private static String formatMessage(String message, Object... args) {
+        if (message == null) {
+            return null;
+        }
+        if (args == null || args.length == 0) {
+            return message;
+        }
+        final String delim = "{}";
+        StringBuilder sb = new StringBuilder(message.length() + 64);
+        int argIndex = 0;
+        int consumed = 0;
+        int cursor = 0;
+        int len = message.length();
+        while (cursor < len) {
+            int j = message.indexOf(delim, cursor);
+            if (j < 0) {
+                sb.append(message, cursor, len);
+                break;
+            }
+            // 检测转义：\{} 表示字面量 {}，\{} 不消费参数；\\{} 表示字面量反斜杠 + 正常占位。
+            boolean escaped = j > 0 && message.charAt(j - 1) == '\\';
+            boolean escapedEscape = escaped && j > 1 && message.charAt(j - 2) == '\\';
+            if (escaped && !escapedEscape) {
+                // 去掉转义用的反斜杠，输出字面量 {}
+                sb.append(message, cursor, j - 1);
+                sb.append(delim);
+                cursor = j + 2;
+                continue;
+            }
+            sb.append(message, cursor, j);
+            if (argIndex < args.length) {
+                sb.append(stringify(args[argIndex]));
+                argIndex++;
+                consumed++;
+            } else {
+                // 没有对应参数，保留占位符
+                sb.append(delim);
+            }
+            cursor = j + 2;
+        }
+        // 末尾异常且未被占位符消费时，追加堆栈
+        if (args.length > 0 && args[args.length - 1] instanceof Throwable
+                && args.length > consumed) {
+            Throwable throwable = (Throwable) args[args.length - 1];
+            StringWriter sw = new StringWriter();
+            throwable.printStackTrace(new PrintWriter(sw));
+            sb.append(System.lineSeparator()).append(sw);
+        }
+        return sb.toString();
+    }
+
+    private static String stringify(Object arg) {
+        return arg == null ? "null" : String.valueOf(arg);
     }
 }
